@@ -10,7 +10,8 @@
                  [cprop "0.1.9"]
                  [org.clojure/tools.cli "0.3.5"]
                  [org.clojure/tools.logging "0.3.1"]
-                 [ch.qos.logback/logback-classic "1.1.7"]]
+                 [ch.qos.logback/logback-classic "1.1.7"]
+                 [com.jd.bdp.magpie/magpie-utils "0.1.4-SNAPSHOT"]]
   :main ^:skip-aot rocks.pho.btc.whac-a-mole.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})

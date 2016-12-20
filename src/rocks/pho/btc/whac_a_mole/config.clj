@@ -3,3 +3,5 @@
             [cprop.source :as source]))
 
 (defstate env :start (source/from-env))
+
+(defstate API-MAX-KLINES-LENGTH :start 1800)
