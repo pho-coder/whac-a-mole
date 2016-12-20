@@ -37,7 +37,8 @@
       (doall (doseq [one (rest klines-list)]
                (let [file-name (utils/get-readable-time (:timestamp one) format)
                      file-path (str path "/" file-name)]
-                 (spit file-path (str (models/kline2log one) "\n") :append true)))))))
+                 (spit file-path (str (models/kline2log one) "\n") :append true))))))
+  (log/info "log " (.size klines-list) " klines with tag " (if new? "N" "C")))
 
 (defn get-last-kline-timestamp [path]
   (let [files (.list (clojure.java.io/as-file path))
@@ -49,6 +50,32 @@
     (if (= max-file "")
       -1
       (:timestamp (last (models/log2klines (slurp (str path "/" max-file))))))))
+
+(defn klines-dealer []
+  (let [now-timestamp (System/currentTimeMillis)
+        diff-minutes (quot (- now-timestamp last-kline-timestamp)
+                           (* 60 1000))
+        now-klines (models/api2klines (utils/get-kline "001" (if (> diff-minutes
+                                                                    config/API-MAX-KLINES-LENGTH)
+                                                               (+ config/API-MAX-KLINES-LENGTH
+                                                                  10)
+                                                               (+ diff-minutes
+                                                                  10))))
+        newest-kline (last now-klines)
+        fixed-klines (drop-last now-klines)
+        last-kline-timestamp-index (utils/find-kline-timestamp fixed-klines last-kline-timestamp)
+        cutted-klines (if (= -1 last-kline-timestamp-index)
+                        fixed-klines
+                        (nthrest fixed-klines (inc last-kline-timestamp-index)))]
+    (when-not (empty? cutted-klines)
+      (log-klines cutted-klines :new? (if (= -1 last-kline-timestamp-index)
+                                        (do (log/warn "klines dealer NOT FOUND last kline timestamp: " last-kline-timestamp)
+                                            true)
+                                        false))
+      (mount/start-with {#'last-kline-timestamp (:timestamp (last cutted-klines))}))
+    (when (and (= -1 last-kline-timestamp-index)
+               (<= diff-minutes config/API-MAX-KLINES-LENGTH))
+      (log/error "diff minutes < " config/API-MAX-KLINES-LENGTH ", BUT NOT FOUND last kline timestamp: " last-kline-timestamp " in api data!"))))
 
 (defn init-klines-watcher []
   (let [klines-data-path (:klines-data-path env)]
@@ -62,10 +89,10 @@
               fixed-klines (drop-last klines)
               last-fixed-kline (last fixed-klines)]
           (log-klines fixed-klines :new? true)
-          (mount/start-with {#'last-kline-timestamp (:timestamp last-fixed-kline)}))))))
+          (mount/start-with {#'last-kline-timestamp (:timestamp last-fixed-kline)}))
+        (klines-dealer))))
+  (log/info "finish init klines watcher."))
 
 (defn klines-watcher []
-  (let [klines-data-path (clojure.java.io/as-file (:klines-data-path env))
-        klines-data-now (utils/get-kline "001" 10)
-        klines-files (.list klines-data-path)])
+  (klines-dealer)
   (log/info "kline watcher once!"))

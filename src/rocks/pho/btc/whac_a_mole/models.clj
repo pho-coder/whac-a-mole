@@ -35,12 +35,12 @@
   "from a kline log line to kline"
   [a-line]
   (let [cols (clojure.string/split a-line #",")]
-    {:timestamp (long (nth cols 0))
-     :open-price (double (nth cols 1))
-     :highest-price (double (nth cols 2))
-     :lowest-price (double (nth cols 3))
-     :close-price (double (nth cols 4))
-     :amount (double (nth cols 5))
+    {:timestamp (Long/parseLong (nth cols 0))
+     :open-price (Double/parseDouble (nth cols 1))
+     :highest-price (Double/parseDouble (nth cols 2))
+     :lowest-price (Double/parseDouble (nth cols 3))
+     :close-price (Double/parseDouble (nth cols 4))
+     :amount (Double/parseDouble (nth cols 5))
      :tag (nth cols 6)}))
 
 (defn log2klines

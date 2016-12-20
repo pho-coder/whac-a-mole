@@ -40,4 +40,13 @@
                             (http-client/get url {:query-params {"length" length}})))
                    :key-fn keyword)))
 
-
+(defn find-kline-timestamp
+  "return -1 : not found
+           n : find at index n"
+  [klines ts]
+  (loop [index 0]
+    (if (>= index (.size klines))
+      -1
+      (if (= (:timestamp (nth klines index)) ts)
+        index
+        (recur (inc index))))))
