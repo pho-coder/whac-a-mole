@@ -30,7 +30,8 @@
                         :started)]
     (log/info component "started"))
   (log/info "data path:" (:btc-data-path env))
-  (log/info "klines data path:" (:klines-data-path env))
+  (log/info "fixed klines data path:" (:fixed-klines-data-path env))
+  (log/info "current klines data path:" (:current-klines-data-path env))
   (watcher/init-klines-watcher)
   (timer/schedule-recurring klines-timer 1 10 watcher/klines-watcher)
   (.addShutdownHook (Runtime/getRuntime) (Thread. stop-app)))

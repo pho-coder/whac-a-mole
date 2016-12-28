@@ -1,4 +1,4 @@
-(defproject rocks.pho.btc/whac-a-mole "0.1.1-SNAPSHOT"
+(defproject rocks.pho.btc/whac-a-mole "0.1.4-SNAPSHOT"
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"

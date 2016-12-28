@@ -50,3 +50,15 @@
       (if (= (:timestamp (nth klines index)) ts)
         index
         (recur (inc index))))))
+
+(defn get-realtime-detail
+  []
+  (let [url "http://api.huobi.com/staticmarket/detail_btc_json.js"]
+    (json/read-str (:body (http-client/get url))
+                   :key-fn keyword)))
+
+(defn get-depth
+  []
+  (let [url "http://api.huobi.com/staticmarket/depth_btc_json.js"]
+    (json/read-str (:body (http-client/get url))
+                   :key-fn keyword)))
