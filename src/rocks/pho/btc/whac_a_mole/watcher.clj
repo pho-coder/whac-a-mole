@@ -128,4 +128,7 @@
         (log/error "realtime detail ERROR!")
         (log/error e)
         (throw e))))
-  (log/info "kline watcher once!"))
+  (log/info "kline watcher once!")
+  (let [name (.getName (java.lang.management.ManagementFactory/getRuntimeMXBean))
+        pid (first (clojure.string/split name #"@"))]
+    (spit (:watcher-pid-file env) pid)))
