@@ -65,10 +65,10 @@
 
 (defn buy-market
   "buy by my server"
-  [url code amount]
-  (let [re (json/read-str (:body (http-client/post url
+  [server-url secret-code amount]
+  (let [re (json/read-str (:body (http-client/post (str server-url "/buy-market")
                                                    {:content-type :json
-                                                    :body (str "{\"code\":" code
+                                                    :body (str "{\"code\":" secret-code
                                                                ",\"amount\":" amount
                                                                "}")}))
                           :key-fn keyword)]
@@ -76,11 +76,20 @@
 
 (defn sell-market
   "sell by my server"
-  [url code amount]
-  (let [re (json/read-str (:body (http-client/post url
+  [server-url secret-code amount]
+  (let [re (json/read-str (:body (http-client/post (str server-url "/sell-market")
                                                    {:content-type :json
-                                                    :body (str "{\"code\":" code
+                                                    :body (str "{\"code\":" secret-code
                                                                ",\"amount\":" amount
                                                                "}")}))
+                          :key-fn keyword)]
+    re))
+
+(defn get-account-info
+  "get info from my server"
+  [server-url secret-code]
+  (let [re (json/read-str (:body (http-client/post (str server-url "/account-info")
+                                                   {:content-type :json
+                                                    :body (str "{\"code\":" secret-code "}")}))
                           :key-fn keyword)]
     re))

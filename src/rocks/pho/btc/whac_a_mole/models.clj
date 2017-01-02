@@ -195,8 +195,8 @@
        (:asks-amount depth) ","
        (:first-bid-price depth) ","
        (:last-bid-price depth) ","
-       (:price1-bid-amount depth) ","
-       (:price2-bid-amount depth) ","
+       (:price1-bids-amount depth) ","
+       (:price2-bids-amount depth) ","
        (:bids-amount depth)))
 
 (defn line2depth
@@ -211,6 +211,6 @@
      :asks-amount (bigdec (nth cols 5))
      :first-bid-price (bigdec (nth cols 6))
      :last-bid-price (bigdec (nth cols 7))
-     :price1-bid-amount (bigdec (nth cols 8))
-     :price2-bid-amount (bigdec (nth cols 9))
+     :price1-bids-amount (bigdec (nth cols 8))
+     :price2-bids-amount (bigdec (nth cols 9))
      :bids-amount (bigdec (nth cols 10))}))

@@ -4,18 +4,20 @@
             [com.jd.bdp.magpie.util.timer :as timer]
 
             [rocks.pho.btc.whac-a-mole.config :refer [env]]
-            [rocks.pho.btc.whac-a-mole.watcher :as watcher])
+            [rocks.pho.btc.whac-a-mole.watcher :as watcher]
+            [rocks.pho.btc.whac-a-mole.tactics.realtime-detail :as rd])
   (:gen-class))
 
 (mount/defstate klines-timer :start (timer/mk-timer)
-                             :stop (if @(:active klines-timer)
-                                    (timer/cancel-timer klines-timer)))
+                             :stop (when @(:active klines-timer)
+                                     (timer/cancel-timer klines-timer)))
 
 (defn check-klines-timer []
   (when-not @(:active klines-timer)
     (log/error "klines timer inactive!")
     (mount/stop #'klines-timer)
     (mount/start #'klines-timer)
+    (rd/init-wallet)
     (timer/schedule-recurring klines-timer 1 5 watcher/klines-watcher)
     (log/info "restart klines timer!")))
 
@@ -32,7 +34,8 @@
   (log/info "data path:" (:btc-data-path env))
   (log/info "fixed klines data path:" (:fixed-klines-data-path env))
   (log/info "current klines data path:" (:current-klines-data-path env))
-  (watcher/init-klines-watcher)
+  ;  (watcher/init-klines-watcher)
+  (rd/init-wallet)
   (timer/schedule-recurring klines-timer 1 5 watcher/klines-watcher)
   (.addShutdownHook (Runtime/getRuntime) (Thread. stop-app)))
 
