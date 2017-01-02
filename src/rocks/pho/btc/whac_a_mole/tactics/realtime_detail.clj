@@ -136,7 +136,13 @@
           (if (:success? re)
             (log/info "buy:" (int cny))
             (log/error "buy error:" (:info re)))
-          (init-wallet)))
+          (init-wallet)
+          (when (:success? re)
+            (mount/start-with {#'trade-point {:price (:p-new detail)
+                                              :ts ts
+                                              :datetime datetime
+                                              :type "bid"
+                                              :amount (:btc wallet)}}))))
       (when (and (= re "ask")
                  (> btc 0))
         (log/info "CAN SELL")
@@ -146,7 +152,15 @@
           (if (:success? re)
             (log/info "sell:" btc)
             (log/error "sell error:" (:info re)))
-          (init-wallet))))
+          (init-wallet)
+          (when (:success? re)
+            (log/info "maybe got diff:" (- (:p-new detail)
+                                           (:price trade-point)))
+            (mount/start-with {#'trade-point {:price (:p-new detail)
+                                              :ts ts
+                                              :datetime datetime
+                                              :type "ask"
+                                              :amount btc}})))))
     (when (> (- (System/currentTimeMillis)
                 (:ts watching-point))
              (* 5 60 1000))
