@@ -62,3 +62,25 @@
   (let [url "http://api.huobi.com/staticmarket/depth_btc_json.js"]
     (json/read-str (:body (http-client/get url))
                    :key-fn keyword)))
+
+(defn buy-market
+  "buy by my server"
+  [url code amount]
+  (let [re (json/read-str (:body (http-client/post url
+                                                   {:content-type :json
+                                                    :body (str "{\"code\":" code
+                                                               ",\"amount\":" amount
+                                                               "}")}))
+                          :key-fn keyword)]
+    re))
+
+(defn sell-market
+  "sell by my server"
+  [url code amount]
+  (let [re (json/read-str (:body (http-client/post url
+                                                   {:content-type :json
+                                                    :body (str "{\"code\":" code
+                                                               ",\"amount\":" amount
+                                                               "}")}))
+                          :key-fn keyword)]
+    re))

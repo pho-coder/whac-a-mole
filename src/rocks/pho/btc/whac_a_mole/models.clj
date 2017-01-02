@@ -1,5 +1,6 @@
 (ns rocks.pho.btc.whac-a-mole.models
-  (:require [rocks.pho.btc.whac-a-mole.utils :as utils]))
+  (:require [clojure.tools.logging :as log]
+            [rocks.pho.btc.whac-a-mole.utils :as utils]))
 
 (defn list2kline
   "from one line api data
@@ -135,33 +136,81 @@
   [a-map]
   (let [asks (:asks a-map)
         bids (:bids a-map)
-        first-ask-price (first (first asks))
-        ask-price1
-        last-ask-price (first (last asks))
-        first-bid-price (first (first bids))
-        last-bid-price (first (last bids))
-        [price5-asks-amount
-         price10-asks-amount
+        first-ask-price (bigdec (first (first asks)))
+        ask-price1 (+ first-ask-price (/ first-ask-price 1000))
+        ask-price2 (+ first-ask-price (* (/ first-ask-price 1000) 2))
+        last-ask-price (bigdec (first (last asks)))
+        first-bid-price (bigdec (first (first bids)))
+        bid-price1 (- first-bid-price (/ first-bid-price 1000))
+        bid-price2 (- first-bid-price (* (/ first-bid-price 1000) 2))
+        last-bid-price (bigdec (first (last bids)))
+        [price1-asks-amount
+         price2-asks-amount
          asks-amount] (reduce (fn [t o]
-                                (let [price5-amount-inc (if (<= (- (first o)
-                                                                   first-ask-price)
-                                                                5)
+                                (let [price1-amount-inc (if (<= (first o) ask-price1)
                                                           (bigdec (second o))
                                                           0)
-                                      price10-amount-inc (if (<= (- (first o)
-                                                                    first-ask-price)
-                                                                 10)
-                                                           (bigdec (second o))
-                                                           0)]
-                                  (update (update (update t 0 + price5-amount-inc)
-                                                  1 + price10-amount-inc)
+                                      price2-amount-inc (if (<= (first o) ask-price2)
+                                                          (bigdec (second o))
+                                                          0)]
+                                  (update (update (update t 0 + price1-amount-inc)
+                                                  1 + price2-amount-inc)
                                           2 + (bigdec (second o)))))
                               [0 0 0]
-                              asks)]
-    {:first-ask-price first-ask-price
+                              asks)
+        [price1-bids-amount
+         price2-bids-amount
+         bids-amount] (reduce (fn [t o]
+                                (let [price1-amount-inc (if (>= (first o) bid-price1)
+                                                          (bigdec (second o))
+                                                          0)
+                                      price2-amount-inc (if (>= (first o) bid-price2)
+                                                          (bigdec (second o))
+                                                          0)]
+                                  (update (update (update t 0 + price1-amount-inc)
+                                                  1 + price2-amount-inc)
+                                          2 + (bigdec (second o)))))
+                              [0 0 0]
+                              bids)]
+    {:timestamp (System/currentTimeMillis)
+     :first-ask-price first-ask-price
      :last-ask-price last-ask-price
-     :price5-asks-amount price5-asks-amount
-     :price10-asks-amount price10-asks-amount
+     :price1-asks-amount price1-asks-amount
+     :price2-asks-amount price2-asks-amount
      :asks-amount asks-amount
      :first-bid-price first-bid-price
-     :last-bid-price last-bid-price}))
+     :last-bid-price last-bid-price
+     :price1-bids-amount price1-bids-amount
+     :price2-bids-amount price2-bids-amount
+     :bids-amount bids-amount}))
+
+(defn depth2line
+  "from depth object to a line log"
+  [depth]
+  (str (:timestamp depth) ","
+       (:first-ask-price depth) ","
+       (:last-ask-price depth) ","
+       (:price1-asks-amount depth) ","
+       (:price2-asks-amount depth) ","
+       (:asks-amount depth) ","
+       (:first-bid-price depth) ","
+       (:last-bid-price depth) ","
+       (:price1-bid-amount depth) ","
+       (:price2-bid-amount depth) ","
+       (:bids-amount depth)))
+
+(defn line2depth
+  "from a depth line to depth object"
+  [a-line]
+  (let [cols (clojure.string/split a-line #",")]
+    {:timestamp (Long/parseLong (nth cols 0))
+     :first-ask-price (bigdec (nth cols 1))
+     :last-ask-price (bigdec (nth cols 2))
+     :price1-asks-amount (bigdec (nth cols 3))
+     :pirce2-asks-amount (bigdec (nth cols 4))
+     :asks-amount (bigdec (nth cols 5))
+     :first-bid-price (bigdec (nth cols 6))
+     :last-bid-price (bigdec (nth cols 7))
+     :price1-bid-amount (bigdec (nth cols 8))
+     :price2-bid-amount (bigdec (nth cols 9))
+     :bids-amount (bigdec (nth cols 10))}))

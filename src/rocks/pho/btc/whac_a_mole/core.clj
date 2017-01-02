@@ -16,7 +16,7 @@
     (log/error "klines timer inactive!")
     (mount/stop #'klines-timer)
     (mount/start #'klines-timer)
-    (timer/schedule-recurring klines-timer 1 10 watcher/klines-watcher)
+    (timer/schedule-recurring klines-timer 1 5 watcher/klines-watcher)
     (log/info "restart klines timer!")))
 
 (defn stop-app []
@@ -33,7 +33,7 @@
   (log/info "fixed klines data path:" (:fixed-klines-data-path env))
   (log/info "current klines data path:" (:current-klines-data-path env))
   (watcher/init-klines-watcher)
-  (timer/schedule-recurring klines-timer 1 10 watcher/klines-watcher)
+  (timer/schedule-recurring klines-timer 1 5 watcher/klines-watcher)
   (.addShutdownHook (Runtime/getRuntime) (Thread. stop-app)))
 
 (defn -main

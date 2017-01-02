@@ -116,6 +116,16 @@
 (defn klines-watcher []
   (let [id batch-id
         _ (mount/start-with {#'batch-id (inc batch-id)})]
-  (klines-dealer id)
-  (rd/watch-once id))
+    ;; (try
+    ;;   (klines-dealer id)
+    ;;   (catch Throwable e
+    ;;     (log/error "klines dealer ERROR!")
+    ;;     (log/error e)
+    ;;     (throw e)))
+    (try
+      (rd/watch-once id)
+      (catch Throwable e
+        (log/error "realtime detail ERROR!")
+        (log/error e)
+        (throw e))))
   (log/info "kline watcher once!"))

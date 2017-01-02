@@ -25,6 +25,22 @@
     (spit file-path (str id "," (models/detail2line detail) "\n") :append true)
     (log/info "log one detail - new price:" (:p-new detail))))
 
+(defn log-depth
+  [depth id]
+  (let [format "YYYY-MM-dd_HH"
+        path (:depth-data-path env)
+        file-name (utils/get-readable-time (:timestamp depth) format)
+        file-path (str path "/" file-name)]
+    (spit file-path (str id "," (models/depth2line depth) "\n") :append true)
+    (log/info "log one depth:\n"
+              (str "asks-amount:\t\t"
+                   (:asks-amount depth) "\n"
+                   " bids-amount:\t\t" (:bids-amount depth) "\n"
+                   " price1-asks-amount:\t" (:price1-asks-amount depth) "\n"
+                   " price1-bids-amount:\t" (:price1-bids-amount depth) "\n"
+                   " price2-asks-amount:\t" (:price2-asks-amount depth) "\n"
+                   " price2-bids-amount:\t" (:price2-bids-amount depth)))))
+
 (defn watch-once
   [id]
   (let [detail (models/api2detail (utils/get-realtime-detail))
@@ -33,8 +49,10 @@
         max-amount-buy (:max-amount-buy detail)
         max-amount-sell (:max-amount-sell detail)
         bid-amount (:bid-amount detail)
-        ask-amount (:ask-amount detail)]
+        ask-amount (:ask-amount detail)
+        depth (models/api2depth (utils/get-depth))]
     (log-detail detail id)
+    (log-depth depth id)
     (when (> (- (System/currentTimeMillis)
                 (:ts watching-point))
              (* 5 60 1000))
