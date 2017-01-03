@@ -75,8 +75,8 @@
           "")
       (let [data (take times points)
             re (map (fn [o]
-                      (let [asks-amount (:asks-amount o)
-                            bids-amount (:bids-amount o)]
+                      (let [asks-amount (:price2-asks-amount o)
+                            bids-amount (:price2-bids-amount o)]
                         (if (>= (/ (double asks-amount)
                                    (double bids-amount))
                                 diff)
@@ -96,7 +96,12 @@
         (when (or (= dealed "ask")
                   (= dealed "bid"))
           (log/info "point:" dealed)
-          (init-wallet)
+          (if (= dealed "bid")
+            (if (not= "bid" (:type trade-point))
+              (init-wallet)))
+          (if (= dealed "ask")
+            (if (not= "ask" (:type trade-point))
+              (init-wallet)))
           dealed)))))
 
 (defn watch-once
