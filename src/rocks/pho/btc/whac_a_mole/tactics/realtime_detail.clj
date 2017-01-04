@@ -139,7 +139,7 @@
                                    (:secret-code env)
                                    (int cny))]
           (if (:success? re)
-            (log/info "buy:" (int cny))
+            (log/info "buy:" (int cny) "info:" (:info re))
             (log/error "buy error:" (:info re)))
           (init-wallet)
           (when (:success? re)
@@ -155,7 +155,7 @@
                                     (:secret-code env)
                                     btc)]
           (if (:success? re)
-            (log/info "sell:" btc)
+            (log/info "sell:" btc "info:" (:info re))
             (log/error "sell error:" (:info re)))
           (init-wallet)
           (when (:success? re)
