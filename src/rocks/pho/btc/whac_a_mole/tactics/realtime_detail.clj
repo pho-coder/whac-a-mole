@@ -25,13 +25,24 @@
 
 (mount/defstate recent-points :start (list))
 
+(mount/defstate last-top-point :start {:price 0
+                                       :ts 0
+                                       :datetime ""})
+
 (defn log-detail
   [detail id]
-  (let [format "YYYY-MM-dd_HH"
+  (let [ts (System/currentTimeMillis)
+        datetime (utils/get-readable-time ts)
+        price (:p-new detail)
+        format "YYYY-MM-dd_HH"
         path (:detail-data-path env)
         file-name (utils/get-readable-time (:timestamp detail) format)
         file-path (str path "/" file-name)]
     (spit file-path (str id "," (models/detail2line detail) "\n") :append true)
+    (when (>= price (:price last-top-point))
+      (mount/start-with {#'last-top-point {:price price
+                                           :ts ts
+                                           :datetime datetime}}))
     (log/info "log one detail - new price:" (:p-new detail))))
 
 (defn log-depth
@@ -94,19 +105,60 @@
         (log/info "recent data:" data)
         (log/info "recent re:" re)
         (when (or (and (= dealed "ask")
-                       (<= (:new-price (first data))
-                           (:new-price (second data))))
+                       (< (:new-price (first data))
+                          (:new-price (second data))))
                   (and (= dealed "bid")
                        (>= (:new-price (first data))
                            (:new-price (second data)))))
           (log/info "point:" dealed)
-          (if (= dealed "bid")
-            (if (not= "bid" (:type trade-point))
-              (init-wallet)))
-          (if (= dealed "ask")
-            (if (not= "ask" (:type trade-point))
-              (init-wallet)))
+          ;; (if (= dealed "bid")
+          ;;   (if (not= "bid" (:type trade-point))
+          ;;     (init-wallet)))
+          ;; (if (= dealed "ask")
+          ;;   (if (not= "ask" (:type trade-point))
+          ;;     (init-wallet)))
           dealed)))))
+
+(defn buy
+  [cny new-price]
+  (let [ts (System/currentTimeMillis)
+        datetime (utils/get-readable-time ts)
+        re (utils/buy-market (:server-url env)
+                             (:secret-code env)
+                             cny)]
+    (if (:success? re)
+      (log/info "buy:" cny "info:" (:info re))
+      (log/error "buy error:" (:info re)))
+    (init-wallet)
+    (when (:success? re)
+      (mount/start-with {#'trade-point {:price new-price
+                                        :ts ts
+                                        :datetime datetime
+                                        :type "bid"
+                                        :amount (:btc wallet)}})
+      (mount/start-with {#'last-top-point {:price new-price
+                                           :ts ts
+                                           :datetime datetime}}))))
+
+(defn sell
+  [btc new-price]
+  (let [ts (System/currentTimeMillis)
+        datetime (utils/get-readable-time ts)
+        re (utils/sell-market (:server-url env)
+                              (:secret-code env)
+                              btc)]
+    (if (:success? re)
+      (log/info "sell:" btc "info:" (:info re))
+      (log/error "sell error:" (:info re)))
+    (init-wallet)
+    (when (:success? re)
+      (log/info "maybe got diff:" (- new-price
+                                     (:price trade-point)))
+      (mount/start-with {#'trade-point {:price new-price
+                                        :ts ts
+                                        :datetime datetime
+                                        :type "ask"
+                                        :amount btc}}))))
 
 (defn watch-once
   [id]
@@ -133,47 +185,40 @@
                                                             :datetime datetime})})
     (while (> (.size recent-points) 10)
       (mount/start-with {#'recent-points (drop-last recent-points)}))
+
     (let [re (check-recent-points)
           btc (:btc wallet)
           cny (:cny wallet)]
       (when (and (= re "bid")
                  (<= btc 0))
         (log/info "CAN BUY")
-        (let [re (utils/buy-market (:server-url env)
-                                   (:secret-code env)
-                                   (int cny))]
-          (if (:success? re)
-            (log/info "buy:" (int cny) "info:" (:info re))
-            (log/error "buy error:" (:info re)))
-          (init-wallet)
-          (when (:success? re)
-            (mount/start-with {#'trade-point {:price (:p-new detail)
-                                              :ts ts
-                                              :datetime datetime
-                                              :type "bid"
-                                              :amount (:btc wallet)}}))))
+        (buy (int cny) (:p-new detail)))
       (when (and (= re "ask")
                  (> btc 0))
         (log/info "CAN SELL")
-        (let [re (utils/sell-market (:server-url env)
-                                    (:secret-code env)
-                                    btc)]
-          (if (:success? re)
-            (log/info "sell:" btc "info:" (:info re))
-            (log/error "sell error:" (:info re)))
-          (init-wallet)
-          (when (:success? re)
-            (log/info "maybe got diff:" (- (:p-new detail)
-                                           (:price trade-point)))
-            (mount/start-with {#'trade-point {:price (:p-new detail)
-                                              :ts ts
-                                              :datetime datetime
-                                              :type "ask"
-                                              :amount btc}})))))
+        (sell btc (:p-new detail))))
+    
+    (when (> (:btc wallet) 0)
+      (let [price (:p-new detail)
+            diff-top (- (:price last-top-point) price)
+            diff-top-rate (/ (* diff-top 1000)
+                             price)
+            sell-rate 2]
+        (when (> diff-top-rate
+                 sell-rate)
+          (log/info "MUST SELL")
+          (log/info "diff top more than 2 thousandth.diff price:" diff-top "last top point:" last-top-point)
+          (sell (:btc wallet) (:p-new detail)))))
+    
     (when (> (- (System/currentTimeMillis)
                 (:ts watching-point))
              (* 5 60 1000))
       (mount/start-with {#'watching-point {:price (:p-new detail)
                                            :ts ts
                                            :datetime datetime}})
-      (log/info "update watching point:" watching-point))))
+      (log/info "update watching point:" watching-point))
+
+    (when (> (- (System/currentTimeMillis)
+                (:ts wallet))
+             (* 1 60 1000))
+      (init-wallet))))
