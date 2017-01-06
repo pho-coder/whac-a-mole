@@ -73,7 +73,7 @@
                                      :ts ts
                                      :datetime (utils/get-readable-time ts)}})
         (log/info wallet))
-      (do (log/error "watch-init ERROR:" account-info-str)
+      (do (log/error "init wallet ERROR:" account-info-str)
           (System/exit 1)))))
 
 (defn check-recent-points
@@ -128,7 +128,7 @@
                              cny)]
     (if (:success? re)
       (log/info "buy:" cny "info:" (:info re))
-      (log/error "buy error:" (:info re)))
+      (log/error "buy:" cny "error:" re))
     (init-wallet)
     (when (:success? re)
       (mount/start-with {#'trade-point {:price new-price
@@ -149,7 +149,7 @@
                               btc)]
     (if (:success? re)
       (log/info "sell:" btc "info:" (:info re))
-      (log/error "sell error:" (:info re)))
+      (log/error "sell:" btc "error:" re))
     (init-wallet)
     (when (:success? re)
       (log/info "maybe got diff:" (- new-price
@@ -158,7 +158,12 @@
                                         :ts ts
                                         :datetime datetime
                                         :type "ask"
-                                        :amount btc}}))))
+                                        :amount btc}}))
+    (when (and (= (:code re) 63)
+               (<= btc 0.001))
+      (log/error "sell" btc "below than 0.001, so buy some then sell")
+      (buy 10 new-price)
+      (sell (:btc wallet) new-price))))
 
 (defn watch-once
   [id]
