@@ -78,7 +78,7 @@
 
 (defn check-recent-points
   []
-  (let [times 2
+  (let [times (:check-times env)
         diff 2
         points recent-points]
     (if (< (.size points) times)
@@ -106,7 +106,7 @@
         (log/info "recent re:" re)
         (when (or (and (= dealed "ask")
                        (< (:new-price (first data))
-                          (:new-price (second data))))
+                          (- (:new-price (second data)) 2)))
                   (and (= dealed "bid")
                        (>= (:new-price (first data))
                            (:new-price (second data)))))
@@ -125,9 +125,11 @@
         datetime (utils/get-readable-time ts)
         re (utils/buy-market (:server-url env)
                              (:secret-code env)
-                             cny)]
+                             cny)
+        info (json/read-str (:info re)
+                            :key-fn keyword)]
     (if (:success? re)
-      (log/info "buy:" cny "info:" (:info re))
+      (log/info "buy:" cny "info:" info)
       (log/error "buy:" cny "error:" re))
     (init-wallet)
     (when (:success? re)
@@ -146,9 +148,11 @@
         datetime (utils/get-readable-time ts)
         re (utils/sell-market (:server-url env)
                               (:secret-code env)
-                              btc)]
+                              btc)
+        info (json/read-str (:info re)
+                            :key-fn keyword)]
     (if (:success? re)
-      (log/info "sell:" btc "info:" (:info re))
+      (log/info "sell:" btc "info:" info)
       (log/error "sell:" btc "error:" re))
     (init-wallet)
     (when (:success? re)
@@ -159,7 +163,7 @@
                                         :datetime datetime
                                         :type "ask"
                                         :amount btc}}))
-    (when (and (= (:code re) 63)
+    (when (and (= (:code info) 63)
                (<= btc 0.001))
       (log/error "sell" btc "below than 0.001, so buy some then sell")
       (buy 10 new-price)
@@ -177,6 +181,7 @@
         datetime (utils/get-readable-time ts)]
     (log-detail detail id)
     (log-depth depth id)
+    (log/info "last top point:" last-top-point)
     (mount/start-with {#'recent-points (conj recent-points {:new-price (:p-new detail)
                                                             :asksed-amount ask-amount
                                                             :bidsed-amount bid-amount
@@ -208,11 +213,11 @@
             diff-top (- (:price last-top-point) price)
             diff-top-rate (/ (* diff-top 1000)
                              price)
-            sell-rate 2]
+            sell-rate (:must-sell-rate env)]
         (when (> diff-top-rate
                  sell-rate)
           (log/info "MUST SELL")
-          (log/info "diff top more than 2 thousandth.diff price:" diff-top "last top point:" last-top-point)
+          (log/info "diff top more than " sell-rate " thousandth.diff price:" diff-top "last top point:" last-top-point)
           (sell (:btc wallet) (:p-new detail)))))
     
     (when (> (- (System/currentTimeMillis)

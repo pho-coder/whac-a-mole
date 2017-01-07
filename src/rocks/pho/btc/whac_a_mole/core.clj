@@ -18,7 +18,7 @@
     (mount/stop #'klines-timer)
     (mount/start #'klines-timer)
     (rd/init-wallet)
-    (timer/schedule-recurring klines-timer 1 5 watcher/klines-watcher)
+    (timer/schedule-recurring klines-timer 1 (:timer-interval-time env) watcher/klines-watcher)
     (log/info "restart klines timer!")))
 
 (defn stop-app []
@@ -36,7 +36,7 @@
   (log/info "current klines data path:" (:current-klines-data-path env))
   ;  (watcher/init-klines-watcher)
   (rd/init-wallet)
-  (timer/schedule-recurring klines-timer 1 5 watcher/klines-watcher)
+  (timer/schedule-recurring klines-timer 1 (:timer-interval-time env) watcher/klines-watcher)
   (.addShutdownHook (Runtime/getRuntime) (Thread. stop-app)))
 
 (defn -main
