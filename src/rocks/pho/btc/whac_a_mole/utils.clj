@@ -93,3 +93,13 @@
                                                     :body (str "{\"code\":" secret-code "}")}))
                           :key-fn keyword)]
     re))
+
+(defn get-order-info
+  "get order info from my server"
+  [server-url secret-code id]
+  (let [re (json/read-str (:body (http-client/post (str server-url "order-info")
+                                                   {:content-type :json
+                                                    :body (str "{\"code\":" secret-code
+                                                               ",\"id\":" id
+                                                               "}")}))
+                          :key-fn keyword)]))

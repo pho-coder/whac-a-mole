@@ -17,7 +17,9 @@
                                     :ts 0
                                     :datetime ""
                                     :type ""
-                                    :amount 0})
+                                    :amount 0
+                                    :id 0
+                                    :checked? true})
 
 (mount/defstate wallet :start {:cny 0
                                :btc 0
@@ -29,6 +31,10 @@
 (mount/defstate last-top-point :start {:price 0
                                        :ts 0
                                        :datetime ""})
+
+(mount/defstate recent-orders :start (list))
+
+(mount/defstate orders :start (list))
 
 (defn log-detail
   [detail id]
@@ -95,10 +101,13 @@
                                         :ts ts
                                         :datetime datetime
                                         :type "bid"
-                                        :amount (:btc wallet)}})
+                                        :amount (:btc wallet)
+                                        :id (:id info)
+                                        :checked? false}})
       (mount/start-with {#'last-top-point {:price new-price
                                            :ts ts
-                                           :datetime datetime}}))))
+                                           :datetime datetime}})
+      (mount/start-with {#'recent-orders (conj recent-orders trade-point)}))))
 
 (defn sell
   [btc new-price]
@@ -120,10 +129,13 @@
                                         :ts ts
                                         :datetime datetime
                                         :type "ask"
-                                        :amount btc}}))
+                                        :amount btc
+                                        :id (:id info)
+                                        :checked? false}})
+      (mount/start-with {#'recent-orders (conj recent-orders trade-point)}))
     (when (and (= (:code info) 63)
                (<= btc 0.001))
-      (log/error "sell" btc "below than 0.001, so buy some then sell")
+      (log/warn "sell" btc "below than 0.001, so buy some then sell")
       (buy 10 new-price)
       (sell (:btc wallet) new-price))))
 
@@ -198,7 +210,7 @@
                                                             :bids-amount (:bids-amount depth)
                                                             :ts ts
                                                             :datetime datetime})})
-    (while (> (.size recent-points) 10)
+    (while (> (.size recent-points) 100)
       (mount/start-with {#'recent-points (drop-last recent-points)}))
 
     ;; check recent points buy or sell
@@ -225,7 +237,7 @@
                  sell-rate)
           (log/info "MUST SELL")
           (log/info "diff top more than" sell-rate "thousandth. diff price:" diff-top "last top point:" last-top-point)
-          (sell (:btc wallet) (:p-new detail)))))
+          (sell id (:btc wallet) (:p-new detail)))))
 
     ;; check wallet
     (when (and (< (:cny wallet) 10)
@@ -236,4 +248,4 @@
   (let [name (.getName (java.lang.management.ManagementFactory/getRuntimeMXBean))
         pid (first (clojure.string/split name #"@"))]
     (spit (:watcher-pid-file env) pid))
-  (log/info "watch once!"))
+  (log/info "watch once!\n\n\n"))
