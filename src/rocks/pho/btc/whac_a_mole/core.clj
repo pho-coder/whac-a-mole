@@ -4,22 +4,21 @@
             [com.jd.bdp.magpie.util.timer :as timer]
 
             [rocks.pho.btc.whac-a-mole.config :refer [env]]
-            [rocks.pho.btc.whac-a-mole.watcher :as watcher]
-            [rocks.pho.btc.whac-a-mole.tactics.realtime-detail :as rd])
+            [rocks.pho.btc.whac-a-mole.watcher :as watcher])
   (:gen-class))
 
-(mount/defstate klines-timer :start (timer/mk-timer)
-                             :stop (when @(:active klines-timer)
-                                     (timer/cancel-timer klines-timer)))
+(mount/defstate watcher-timer :start (timer/mk-timer)
+                              :stop (when @(:active watcher-timer)
+                                     (timer/cancel-timer watcher-timer)))
 
-(defn check-klines-timer []
-  (when-not @(:active klines-timer)
-    (log/error "klines timer inactive!")
-    (mount/stop #'klines-timer)
-    (mount/start #'klines-timer)
-    (rd/init-wallet)
-    (timer/schedule-recurring klines-timer 1 (:timer-interval-time env) watcher/klines-watcher)
-    (log/info "restart klines timer!")))
+(defn check-watcher-timer []
+  (when-not @(:active watcher-timer)
+    (log/error "watcher timer inactive!")
+    (mount/stop #'watcher-timer)
+    (mount/start #'watcher-timer)
+    (watcher/reset-wallet)
+    (timer/schedule-recurring watcher-timer 1 (:timer-interval-time env) watcher/watch-once)
+    (log/info "restart watcher timer!")))
 
 (defn stop-app []
   (doseq [component (:stopped (mount/stop))]
@@ -32,11 +31,9 @@
                         :started)]
     (log/info component "started"))
   (log/info "data path:" (:btc-data-path env))
-  (log/info "fixed klines data path:" (:fixed-klines-data-path env))
-  (log/info "current klines data path:" (:current-klines-data-path env))
-  ;  (watcher/init-klines-watcher)
-  (rd/init-wallet)
-  (timer/schedule-recurring klines-timer 1 (:timer-interval-time env) watcher/klines-watcher)
+  (watcher/init-watcher)
+  (watcher/reset-wallet)
+  (timer/schedule-recurring watcher-timer 1 (:timer-interval-time env) watcher/watch-once)
   (.addShutdownHook (Runtime/getRuntime) (Thread. stop-app)))
 
 (defn -main
@@ -46,4 +43,4 @@
   (start-app args)
   (while true
     (Thread/sleep 2000)
-    (check-klines-timer)))
+    (check-watcher-timer)))
