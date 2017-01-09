@@ -68,6 +68,16 @@
                    " price2-asks-amount:\t" (:price2-asks-amount depth) "\n"
                    " price2-bids-amount:\t" (:price2-bids-amount depth)))))
 
+(defn log-core-info
+  [info]
+  (let [ts (System/currentTimeMillis)
+        format "YYYY-MM-dd_HH"
+        path (:core-info-path env)
+        file-name (utils/get-readable-time ts format)
+        file-path (str path "/" file-name)]
+    (spit file-path (str (json/write-str (assoc info :ts ts)) "\n") :append true)
+    (log/info "log core info")))
+
 (defn reset-wallet
   []
   (let [account-info-str (utils/get-account-info (:server-url env) (:secret-code env))]
@@ -93,8 +103,10 @@
         info (json/read-str (:info re)
                             :key-fn keyword)]
     (if (:success? re)
-      (log/info "buy:" cny "info:" info)
-      (log/error "buy:" cny "error:" re))
+      (do (log/info "buy:" cny "info:" info)
+          (log-core-info {:type "bid" :info info}))
+      (do (log/error "buy:" cny "error:" re)
+          (log-core-info {:type "bid" :info re})))
     (reset-wallet)
     (when (:success? re)
       (mount/start-with {#'trade-point {:price new-price
@@ -119,8 +131,10 @@
         info (json/read-str (:info re)
                             :key-fn keyword)]
     (if (:success? re)
-      (log/info "sell:" btc "info:" info)
-      (log/error "sell:" btc "error:" re))
+      (do (log/info "sell:" btc "info:" info)
+          (log-core-info {:type "ask" :info info}))
+      (do (log/error "sell:" btc "error:" re)
+          (log-core-info {:type "ask" :info re})))
     (reset-wallet)
     (when (:success? re)
       (log/info "maybe got diff:" (- new-price
@@ -196,6 +210,7 @@
         datetime (utils/get-readable-time ts)]
     (log-detail detail id)
     (log-depth depth id)
+    (log-core-info {:detail detail :depth depth :batch-id id})
     (log/info "last top point:" last-top-point)
 
     ;; deal recent points
