@@ -16,8 +16,9 @@
     (log/error "watcher timer inactive!")
     (mount/stop #'watcher-timer)
     (mount/start #'watcher-timer)
-    (watcher/init-wallet)
-    (timer/schedule-recurring watcher-timer 1 5 watcher/watch-once)
+    (watcher/reset-wallet)
+    (timer/schedule-recurring watcher-timer 1 (:timer-interval-time env) watcher/watch-once)
+
     (log/info "restart watcher timer!")))
 
 (defn stop-app []
@@ -31,8 +32,9 @@
                         :started)]
     (log/info component "started"))
   (log/info "data path:" (:btc-data-path env))
-  (watcher/init-wallet)
-  (timer/schedule-recurring watcher-timer 1 5 watcher/watch-once)
+  (watcher/init-watcher)
+  (watcher/reset-wallet)
+  (timer/schedule-recurring watcher-timer 1 (:timer-interval-time env) watcher/watch-once)
   (.addShutdownHook (Runtime/getRuntime) (Thread. stop-app)))
 
 (defn -main
