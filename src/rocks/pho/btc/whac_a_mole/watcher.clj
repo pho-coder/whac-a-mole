@@ -226,18 +226,26 @@
         (log/info "CAN SELL")
         (sell btc (:p-new detail))))
 
-    ;; check must sell
+    ;; check must sell thousandth
     (when (> (:btc wallet) 0)
-      (let [price (:p-new detail)
+      (let [ts (System/currentTimeMillis)
+            price (:p-new detail)
             diff-top (- (:price last-top-point) price)
+            diff-time (/ (- ts (:ts last-top-point))
+                         1000)
             diff-top-rate (/ (* diff-top 1000)
                              price)
-            sell-rate (:must-sell-rate env)]
+            must-sell-rate (:must-sell-rate env)
+            ;; cut must-sell-rate 50 quot, delay time no more than 52s
+            sell-rate (* must-sell-rate (/ (- 52 diff-time) 50))]
         (when (> diff-top-rate
                  sell-rate)
           (log/info "MUST SELL")
-          (log/info "diff top more than" sell-rate "thousandth. diff price:" diff-top "last top point:" last-top-point)
-          (sell id (:btc wallet) (:p-new detail)))))
+          (log/info (str "\ndiff top more than " sell-rate "(" (with-precision 4 (bigdec sell-rate)) ") thousandth.")
+                    "\ndiff time:" diff-time "(" (with-precision 4 (bigdec diff-time)) ")"
+                    "\ndiff price:" diff-top "(" (with-precision 4 (bigdec diff-top)) ")"
+                    "\nlast top point:" last-top-point)
+          (sell (:btc wallet) (:p-new detail)))))
 
     ;; check wallet
     (when (and (< (:cny wallet) 10)
