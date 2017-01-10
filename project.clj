@@ -8,7 +8,6 @@
                  [org.clojure/data.json "0.2.6"]
                  [mount "0.1.11"]
                  [cprop "0.1.9"]
-                 [org.clojure/tools.cli "0.3.5"]
                  [org.clojure/tools.logging "0.3.1"]
                  [ch.qos.logback/logback-classic "1.1.7"]
                  [com.jd.bdp.magpie/magpie-utils "0.1.4-SNAPSHOT"]]
