@@ -235,11 +235,13 @@
       (when (and (= re "bid")
                  (<= btc 0))
         (log/info "CAN BUY")
-        (buy (int cny) (:p-new detail)))
+;;        (buy (int cny) (:p-new detail))
+        )
       (when (and (= re "ask")
                  (> btc 0))
         (log/info "CAN SELL")
-        (sell btc (:p-new detail))))
+;;        (sell btc (:p-new detail))
+        ))
 
     ;; check must sell thousandth
     (when (> (:btc wallet) 0)
@@ -260,7 +262,8 @@
                     "\ndiff time:" diff-time "(" (with-precision 4 (bigdec diff-time)) ")"
                     "\ndiff price:" diff-top "(" (with-precision 4 (bigdec diff-top)) ")"
                     "\nlast top point:" last-top-point)
-          (sell (:btc wallet) (:p-new detail)))))
+;;          (sell (:btc wallet) (:p-new detail))
+          )))
 
     ;; check wallet
     (when (and (< (:cny wallet) 10)
