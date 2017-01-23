@@ -210,7 +210,7 @@
         datetime (utils/get-readable-time ts)]
     (log-detail detail id)
     (log-depth depth id)
-    (log-core-info {:detail detail :depth depth :batch-id id})
+    (log-core-info {:type "info" :detail detail :depth depth :batch-id id})
     (log/info "last top point:" last-top-point)
 
     ;; deal recent points
